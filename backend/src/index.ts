@@ -21,8 +21,12 @@ app.use(reportRouter);
 const PORT = process.env.PORT || 3000;
 
 sequelize.sync().then(async () => {
-  // Indexar todas las mascotas al iniciar
-  await indexAllPets();
+  // Indexar las mascotas en Algolia, pero sin tumbar el servidor si falla
+  try {
+    await indexAllPets();
+  } catch (err) {
+    console.error('No se pudo indexar en Algolia, el servidor arranca igual:', err);
+  }
 
   app.listen(PORT, () => {
     console.log(`🚀 Server en http://localhost:${PORT}`);
