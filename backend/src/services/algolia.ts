@@ -13,36 +13,45 @@ const client = algoliasearch(
 const INDEX_NAME = 'pets';
 
 // 1. Sincronizar una mascota con Algolia (crear o actualizar)
+// Si Algolia falla (por ejemplo, cuota agotada), no frena la operación
 export async function syncPetToAlgolia(pet: Pet): Promise<void> {
-  const record: any = {
-    objectID: pet.id.toString(),
-    name: pet.name,
-    status: pet.status,
-    location: pet.location,
-    imageUrl: pet.imageUrl || null,
-    reporterId: pet.reporterId,
-  };
-
-  // Solo agregar _geoloc si hay coordenadas
-  if (pet.lat != null && pet.lng != null) {
-    record._geoloc = {
-      lat: pet.lat,
-      lng: pet.lng,
+  try {
+    const record: any = {
+      objectID: pet.id.toString(),
+      name: pet.name,
+      status: pet.status,
+      location: pet.location,
+      imageUrl: pet.imageUrl || null,
+      reporterId: pet.reporterId,
     };
-  }
 
-  await client.saveObject({
-    indexName: INDEX_NAME,
-    body: record,
-  });
+    // Solo agregar _geoloc si hay coordenadas
+    if (pet.lat != null && pet.lng != null) {
+      record._geoloc = {
+        lat: pet.lat,
+        lng: pet.lng,
+      };
+    }
+
+    await client.saveObject({
+      indexName: INDEX_NAME,
+      body: record,
+    });
+  } catch (err) {
+    console.error('No se pudo sincronizar la mascota con Algolia:', err);
+  }
 }
 
-// 2. Eliminar una mascota del índice
+// 2. Eliminar una mascota del índice (tampoco frena la operación si falla)
 export async function deletePetFromAlgolia(petId: number): Promise<void> {
-  await client.deleteObject({
-    indexName: INDEX_NAME,
-    objectID: petId.toString(),
-  });
+  try {
+    await client.deleteObject({
+      indexName: INDEX_NAME,
+      objectID: petId.toString(),
+    });
+  } catch (err) {
+    console.error('No se pudo eliminar la mascota de Algolia:', err);
+  }
 }
 
 // 3. Buscar mascotas por ubicación
